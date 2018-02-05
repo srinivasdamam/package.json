@@ -48,6 +48,8 @@ See also [npm documentation](https://docs.npmjs.com/files/package.json), [packag
 - [Yarn](#yarn)
   * [`flat`](#flat)
   * [`resolutions`](#resolutions)
+- [Lerna + Yarn](#lerna--yarn)
+  * [`workspaces`](#workspaces)
 - [TypeScript](#typescript)
   * [`types`](#types)
 - [browserslist](#browserslist)
@@ -63,8 +65,20 @@ See also [npm documentation](https://docs.npmjs.com/files/package.json), [packag
   * [`jsnext:main`](#jsnextmain)
 - [webpack](#webpack)
   * [`sideEffects`](#sideeffects)
+- [@std/esm](#stdesm)
+  * [`@std/esm`](#stdesm)
+- [jspm](#jspm)
+  * [`jspm`](#jspm)
+  * [`ignore`](#ignore)
+  * [`format`](#format)
+  * [`registry`](#registry)
+  * [`shim`](#shim)
+  * [`map`](#map)
 - [browserify](#browserify)
   * [`browserify.transform`](#browserifytransform)
+- [Create React App](#create-react-app)
+  * [`proxy`](#proxy)
+  * [`homepage`](#homepage-1)
 - [babel](#babel)
   * [`babel`](#babel)
 - [eslint](#eslint)
@@ -75,6 +89,12 @@ See also [npm documentation](https://docs.npmjs.com/files/package.json), [packag
   * [`stylelint`](#stylelint)
 - [size-limit](#size-limit)
   * [`size-limit`](#size-limit)
+- [PWMetrics](#pwmetrics)
+  * [`pwmetrics`](#pwmetrics)
+- [AVA](#ava)
+  * [`ava`](#ava)
+- [nyc](#nyc)
+  * [`nyc`](#nyc)
 - [Other](#other)
   * [`preferGlobal`](#preferglobal)
   * [`style`](#style)
@@ -558,6 +578,14 @@ Allows you to override a version of a particular nested dependency. See [the Sel
 
 Note that installing dependencies via [`yarn install --flat`] will automatically add a `resolutions` block to your `package.json` file.
 
+## Lerna + Yarn
+
+### `workspaces`
+
+If `--use-workspaces` is true then `packages` will be overridden by the value from `package.json/workspaces`.
+
+Source: [--use-workspaces](https://github.com/lerna/lerna#--use-workspaces).
+
 ## TypeScript
 
 ### `types`
@@ -619,6 +647,8 @@ See also: [Create React App Support](https://github.com/facebookincubator/create
 
 ## Package bundlers
 
+See "[Setting up multi-platform npm packages](http://2ality.com/2017/04/setting-up-multi-platform-packages.html#support-by-bundlers)" for an introduction.
+
 ### `module`
 
 `pkg.module` will point to a module that has ES2015 module syntax but otherwise only syntax features that the target environments support. Full description is [here](https://github.com/rollup/rollup/wiki/pkg.module).
@@ -656,7 +686,7 @@ See also: [Delivering untranspiled source code via npm](http://2ality.com/2017/0
 
 ### `es2015`
 
-untranspiled ES6 code. Introduced by Angular. Source: [Transpiling dependencies with Babel](http://2ality.com/2017/04/transpiling-dependencies-babel.html)
+Untranspiled ES6 code. Source: [Angular Package Format (APF) v5.0](https://docs.google.com/document/d/1CZC2rcpxffTDfRDs6p1cfbmKNLA6x5O-NtkJglDaBVs/edit#)
 
 ### `esm`
 
@@ -672,7 +702,7 @@ See also:
 
 See this [issue](https://github.com/webpack/webpack/issues/4674)
 
-Also referred as `moduleBrowser`.
+Also referred as `moduleBrowser`, [`jsnext:browser`](https://github.com/rollup/rollup-plugin-node-resolve/issues/60).
 
 ### `modules.root`
 
@@ -696,11 +726,141 @@ Indicates that the package's modules have no side effects (on evaluation) and on
 
 See also: [`sideEffects` example](https://github.com/webpack/webpack/tree/next/examples/side-effects), [proposal for marking functions as pure](https://github.com/rollup/rollup/issues/1293), [eslint-plugin-tree-shaking](https://www.npmjs.com/package/eslint-plugin-tree-shaking).
 
+## @std/esm
+
+### `@std/esm`
+
+Developers have strong opinions on just about everything. To accommodate, `@std/esm` allows unlocking extra features with the `"@std/esm"` or `"@std":{"esm":{}}` field in your `package.json`.
+
+Source: [@std/esm Unlockables](https://github.com/standard-things/esm#unlockables)
+
+## jspm
+
+### `jspm`
+
+You can write all package properties at the base of the package.json, or if you don't want to change existing properties that you'd like to use specifically for `npm`, you can write your jspm-specific configuration inside the `jspm` property of package.json, and jspm will use these options over the root level configuration options.
+
+For example:
+
+```json
+{
+  "name": "my-package",
+  "jspm": {
+    "main": "jspm-main"
+  }
+}
+```
+
+See [full specification](https://github.com/jspm/registry/wiki/Configuring-Packages-for-jspm#prefixing-configuration).
+
+### `ignore`
+
+If there are certain specific files or folders to ignore, they can be listed in an array.
+
+### `format`
+
+Options are `esm`, `amd`, `cjs` and `global`.
+
+> When loading modules from `npm`, the module format is treated as `cjs` by default and no automatic detection is run. To load modules of another format you will need to override this property manually.
+
+> Module format `esm` (ECMAScript Module) currently isn't used in package.json.
+
+### `registry`
+
+jspm understands dependencies in the context of a registry.
+
+When loading packages from npm, jspm will set the default registry to `npm`, and treat the dependencies accordingly.
+
+When loading packages from GitHub, the dependencies property is ignored without a registry property being present, as jspm has no way of knowing what the dependencies mean for existing GitHub repos.
+
+Setting the registry property also determines how jspm interprets the package. For example, a GitHub package with `registry: "npm"` will, along with getting its dependencies from npm, be interpreted as CommonJS and support features like directory and JSON requires, exactly as if it had been installed from the npm endpoint to begin with.
+
+A package on GitHub with its registry property set to `registry: "jspm"` will have its dependencies treated as jspm-style dependencies.
+
+### `shim`
+
+Packages written as globals need a shim configuration to work properly in a modular environment. To shim a file `some/global.js` within the package, we can write:
+
+```json
+{
+  "shim": {
+    "some/global": {
+      "deps": ["jquery"],
+      "exports": "globalExportName"
+    }
+  }
+}
+```
+
+Both `deps` and `exports` are optional.
+
+`exports` is [detected automatically by the SystemJS loader](https://github.com/systemjs/systemjs/wiki/Module-Format-Support#globals-global) as any globals written by the script. In most cases this detection will work out correctly.
+
+The shortcut form of `"some/global": ["jquery"]` is also supported if there are no `exports`.
+
+### `map`
+
+Map configuration will rewrite internal requires to point to different local or external modules.
+
+Consider a package which includes its own dependency, `dep` located at `third_party/dep`. It could have a require statement internally something like:
+
+```javascript
+  require('dep');
+```
+
+In order to use the local version, we can write:
+
+```json
+{
+  "map": {
+    "dep": "./third_party/dep"
+  }
+}
+```
+
+It can also be useful to reference a package by its own name within submodules:
+
+```json
+{
+  "map": {
+    "thispackage": "."
+  }
+}
+```
+
+We can then have internal requires to `import 'thispackage/module'` resolve correctly.
+
+Map configuration can also reference dependency submodules.
+
+We can also exclude modules entirely by mapping them to the empty module:
+
+```json
+{
+  "map": {
+    "jquery": "@empty"
+  }
+}
+```
+
+The value returned will then be a Module object with no exports.
+
 ## browserify
 
 ### `browserify.transform`
 
 Documentation is [here](https://github.com/browserify/browserify-handbook#browserifytransform-field)
+
+## Create React App
+
+### `proxy`
+
+People often serve the front-end React app from the same host and port as their backend implementation.
+
+Source: [Proxying API Requests in Development](https://github.com/facebookincubator/create-react-app/blob/master/packages/react-scripts/template/README.md#proxying-api-requests-in-development)
+
+### `homepage`
+
+Source: [Building for Relative Paths](https://github.com/facebookincubator/create-react-app/blob/master/packages/react-scripts/template/README.md#building-for-relative-paths)
 
 ## babel
 
@@ -736,6 +896,7 @@ See: [New configuration loader](https://github.com/stylelint/stylelint/issues/49
 ## size-limit
 
 ### `size-limit`
+
 If you're using this library you can define its config in `package.json`:
 
 ```json
@@ -750,6 +911,58 @@ If you're using this library you can define its config in `package.json`:
 ```
 
 Source: [size-limit](https://github.com/ai/size-limit)
+
+## PWMetrics
+
+### `pwmetrics`
+
+You cen specify options in `package.json`:
+
+```json
+{
+  "pwmetrics": {
+    "url": "http://example.com/",
+    "expectations": {
+      "ttfcp": {
+        "warn": ">=1500",
+        "error": ">=2000"
+      }
+    }
+  }
+}
+```
+
+All available options are [here](https://github.com/paulirish/pwmetrics#all-available-configuration-options)
+
+Source: [pwmetrics](https://github.com/paulirish/pwmetrics)
+
+## AVA
+
+### `ava`
+
+Example:
+
+```json
+"ava": {
+  "require": [ "@std/esm" ]
+}
+```
+Source: [ava](https://github.com/avajs/ava#configuration)
+
+## nyc
+
+### `nyc`
+
+Example:
+
+```json
+"nyc": {
+  "extension": [".js", ".mjs"],
+  "require": ["@std/esm"]
+}
+```
+
+Source: [nyc](https://github.com/istanbuljs/nyc#use-with-babel-plugin-istanbul-for-babel-support)
 
 ## Other
 
